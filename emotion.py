@@ -48,10 +48,13 @@ def clean_text(text):
     return text
 
 # -----------------------------------------------------
-# SESSION STATE (HISTORY STORAGE)
+# SESSION STATE
 # -----------------------------------------------------
 if "history" not in st.session_state:
     st.session_state.history = []
+
+if "input_text" not in st.session_state:
+    st.session_state.input_text = ""
 
 # -----------------------------------------------------
 # EMOJI MAP
@@ -65,7 +68,7 @@ emotion_emojis = {
 }
 
 # -----------------------------------------------------
-# CUSTOM CSS (UPGRADED AESTHETICS)
+# CUSTOM CSS
 # -----------------------------------------------------
 st.markdown("""
 <style>
@@ -153,40 +156,41 @@ st.markdown('<div class="main-title">🎭 Emotion Detection System</div>', unsaf
 st.markdown('<div class="subtitle">AI-Powered Emotion Recognition using NLP & Machine Learning</div>', unsafe_allow_html=True)
 
 # -----------------------------------------------------
-# INPUT SECTION WITH BUTTONS
+# INPUT SECTION
 # -----------------------------------------------------
-input_container = st.container()
-with input_container:
-    st.markdown("## 📝 Enter a Sentence for Emotion Analysis")
-    text_input = st.text_area(
-        "Type your sentence here:",
-        height=120,
-        placeholder="Example: I feel very happy and excited today!"
-    )
+st.markdown("## 📝 Enter a Sentence for Emotion Analysis")
+text_input = st.text_area(
+    "Type your sentence here:",
+    height=120,
+    placeholder="Example: I feel very happy and excited today!",
+    key="input_text"
+)
 
-    col1, col2, col3 = st.columns([1,1,1])
-    with col1:
-        analyze_btn = st.button("🔍 Analyze Emotion", use_container_width=True)
-    with col2:
-        clear_btn = st.button("🧹 Clear History", use_container_width=True)
-    with col3:
-        sample_btn = st.button("🎲 Load Sample", use_container_width=True)
+col1, col2, col3 = st.columns([1,1,1])
+with col1:
+    analyze_btn = st.button("🔍 Analyze Emotion", use_container_width=True)
+with col2:
+    clear_btn = st.button("🧹 Clear History", use_container_width=True)
+with col3:
+    sample_btn = st.button("🎲 Load Sample", use_container_width=True)
 
-    if sample_btn:
-        text_input = "I feel really sad and lonely today."
+# Load sample
+if sample_btn:
+    st.session_state.input_text = "I feel really sad and lonely today."
 
-    if clear_btn:
-        st.session_state.history = []
-        st.success("History cleared successfully!")
+# Clear history
+if clear_btn:
+    st.session_state.history = []
+    st.success("History cleared successfully!")
 
 # -----------------------------------------------------
 # PREDICTION LOGIC
 # -----------------------------------------------------
 if analyze_btn:
-    if text_input.strip() == "":
+    if st.session_state.input_text.strip() == "":
         st.error("❌ Please enter a sentence before analyzing.")
     else:
-        cleaned_text = clean_text(text_input)
+        cleaned_text = clean_text(st.session_state.input_text)
         vector = emotion_vectorizer.transform([cleaned_text])
         prediction = emotion_model.predict(vector)[0].lower()
         probabilities = emotion_model.predict_proba(vector)[0]
@@ -195,14 +199,14 @@ if analyze_btn:
         # Save to history
         st.session_state.history.append({
             "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Sentence": text_input,
+            "Sentence": st.session_state.input_text,
             "Predicted Emotion": prediction,
             "Confidence (%)": round(confidence * 100, 2)
         })
 
-        # ------------------- DISPLAY RESULTS IN TABS -------------------
+        # ------------------- TABS -------------------
         tabs = st.tabs(["🎯 Result", "📊 Stats & Dashboard", "📜 History"])
-        
+
         # ------------------- RESULT TAB -------------------
         with tabs[0]:
             emoji = emotion_emojis.get(prediction, "❓")
@@ -210,7 +214,6 @@ if analyze_btn:
                 f"<div class='result-card {prediction}'>{emoji} Predicted Emotion: <b>{prediction.upper()}</b><br>Confidence: {confidence*100:.2f}%</div>",
                 unsafe_allow_html=True
             )
-
             # Probability Distribution
             st.markdown("### 📊 Emotion Probability Distribution")
             prob_df = pd.DataFrame({
@@ -224,11 +227,11 @@ if analyze_btn:
             st.markdown("### 🧾 Text Statistics")
             c1, c2, c3 = st.columns(3)
             with c1:
-                st.markdown(f"<div class='metric-box'>Words<br><b>{len(text_input.split())}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-box'>Words<br><b>{len(st.session_state.input_text.split())}</b></div>", unsafe_allow_html=True)
             with c2:
-                st.markdown(f"<div class='metric-box'>Characters<br><b>{len(text_input)}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-box'>Characters<br><b>{len(st.session_state.input_text)}</b></div>", unsafe_allow_html=True)
             with c3:
-                caps = sum(1 for c in text_input if c.isupper())
+                caps = sum(1 for c in st.session_state.input_text if c.isupper())
                 st.markdown(f"<div class='metric-box'>Capital Letters<br><b>{caps}</b></div>", unsafe_allow_html=True)
 
             if st.session_state.history:
@@ -261,7 +264,7 @@ if analyze_btn:
                 st.info("No predictions yet. Start by analyzing a sentence above!")
 
 # -----------------------------------------------------
-# CASE STUDY EXAMPLES (COLLAPSIBLE)
+# CASE STUDY EXAMPLES
 # -----------------------------------------------------
 with st.expander("📚 Case Study Examples (Click to Expand)"):
     case_col1, case_col2 = st.columns(2)
